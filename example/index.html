@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link data-require="bootstrap-css@3.1.1" data-semver="3.1.1" rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="style.css" />
+    <script data-require="jquery@*" data-semver="2.0.3" src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
+    <script data-require="bootstrap@*" data-semver="3.1.1" src="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+    <script data-require="angular.js@1.2.13" data-semver="1.2.13" src="http://code.angularjs.org/1.2.13/angular.min.js"></script>
+    <script src="..\directive.js"></script>
+    <script src="script.js"></script>
+  </head>
+
+  <body ng-app="demoApp">
+    <form ng-controller="demoController">
+	<fieldset>
+	  <header>Birthday Date</header>
+      <input ezdatedropdowns ng-model="model.birthDay" 
+        date-direction="-"	/>
+    
+    <div>
+	  <p>Selected Date : {{model.birthDay | date: 'dd MMM yyyy'}}</p>
+    </div>
+    </fieldset>
+	
+	<fieldset>
+	  <header>Expiry Date (<small>in future</small>)</header>
+      <input ezdatedropdowns ng-model="model.fullExpiryDate" 
+        date-direction="+"	/>
+    
+    <div>
+	  <p>Selected Date : {{model.fullExpiryDate | date: 'dd MMM yyyy'}}</p>
+    </div>
+    </fieldset>
+	
+	<fieldset>
+	  <header>Expiry Date (<small>in future, no day, default to last day in the month</small>)</header>
+      <input ezdatedropdowns ng-model="model.fullExpiryDateNoDay" 
+        date-direction="+"	no-day="31"/>
+    
+    <div>
+	  <p>Selected Date : {{model.fullExpiryDateNoDay | date: 'dd MMM yyyy'}}</p>
+    </div>
+    </fieldset>
+	</form>
+  </body>
+
+</html>
