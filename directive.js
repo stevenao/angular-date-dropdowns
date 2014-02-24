@@ -1,20 +1,17 @@
-
 'use strict';
 
-angular.module('rorymadden.date-dropdowns', [])
+angular.module('ez.datedropdowns', [])
 
-
-.factory('rsmdateutils', function () {
+.factory('dateutils', function() {
   // validate if entered values are a real date
-  function validateDate(date){
-    // store as a UTC date as we do not want changes with timezones
-    var d = new Date(Date.UTC(date.year, date.month, date.day));
+  function validateDate(date) {
+    var d = new Date(date.year, date.month, date.day);
     return d && (d.getMonth() === date.month && d.getDate() === Number(date.day));
   }
 
   // reduce the day count if not a valid date (e.g. 30 february)
-  function changeDate(date){
-    if(date.day > 28) {
+  function changeDate(date) {
+    if (date.day > 28) {
       date.day--;
       return date;
     }
@@ -28,35 +25,66 @@ angular.module('rorymadden.date-dropdowns', [])
   }
 
   var self = this;
-  this.days = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31];
-  this.months = [
-    { value: 0, name: 'January' },
-    { value: 1, name: 'February' },
-    { value: 2, name: 'March' },
-    { value: 3, name: 'April' },
-    { value: 4, name: 'May' },
-    { value: 5, name: 'June' },
-    { value: 6, name: 'July' },
-    { value: 7, name: 'August' },
-    { value: 8, name: 'September' },
-    { value: 9, name: 'October' },
-    { value: 10, name: 'November' },
-    { value: 11, name: 'December' }
-  ];
+  this.days = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31];
+  this.months = [{
+    value: 0,
+    name: 'January'
+  }, {
+    value: 1,
+    name: 'February'
+  }, {
+    value: 2,
+    name: 'March'
+  }, {
+    value: 3,
+    name: 'April'
+  }, {
+    value: 4,
+    name: 'May'
+  }, {
+    value: 5,
+    name: 'June'
+  }, {
+    value: 6,
+    name: 'July'
+  }, {
+    value: 7,
+    name: 'August'
+  }, {
+    value: 8,
+    name: 'September'
+  }, {
+    value: 9,
+    name: 'October'
+  }, {
+    value: 10,
+    name: 'November'
+  }, {
+    value: 11,
+    name: 'December'
+  }];
 
   return {
     checkDate: function(date) {
-      if(!date.day || !date.month || !date.year){
+      if (isNaN(date.day) || isNaN(date.month) || isNaN(date.year)) {
         return false;
       }
-      if(validateDate(date)) {
+      if (date.day <= 28) return date;
+      if (validateDate(date)) {
         // update the model when the date is correct
         return date;
-      }
-      else {
+      } else {
         // change the date on the scope and try again if invalid
-        this.checkDate(changeDate(date));
+        return this.checkDate(changeDate(date));
       }
+    },
+    correctDate: function(isForward, intendedDate) {
+      var today = new Date();
+      if (isForward && intendedDate <= today)
+        intendedDate = today.setDate(today.getDate() + 1);
+      else if (!isForward && intendedDate > today)
+        intendedDate = today;
+      return intendedDate;
     },
     get: function(name) {
       return self[name];
@@ -64,120 +92,163 @@ angular.module('rorymadden.date-dropdowns', [])
   };
 })
 
-.directive('rsmdatedropdowns', ['rsmdateutils', function (rsmdateutils){
-  return {
-    restrict: 'A',
-    replace: true,
-    require: 'ngModel',
-    scope: {
-      model: '=ngModel'
-    },
-    controller: ['$scope', 'rsmdateutils', function ($scope, rsmDateUtils) {
+.directive('ezdatedropdowns', ['dateutils',
+  function(dateutils, $log) {
+    return {
+      restrict: 'A',
+      replace: true,
+      require: 'ngModel',
+      scope: {
+        model: '=ngModel'
+      },
+      controller: ['$scope', 'dateutils',
+        function($scope, dateutils) {
 
+          // set up arrays of values for dropdown
+          $scope.days = dateutils.get('days');
+          $scope.months = dateutils.get('months');
 
-      // set up arrays of values
-      $scope.days = rsmDateUtils.get('days');
-      $scope.months = rsmDateUtils.get('months');
+          // split the current date into sections
+          $scope.dateFields = {};
 
-      // split the current date into sections
-      $scope.dateFields = {};
-
-      // get UTC version of the date - use case is a birthday as datepickers do not work well for birthdays
-      // if timezones are important raise a pull request and include the use case.
-      $scope.$watch('model', function ( newDate ) {
-        $scope.dateFields.day = new Date(newDate).getUTCDate();
-        $scope.dateFields.month = new Date(newDate).getUTCMonth();
-        $scope.dateFields.year = new Date(newDate).getUTCFullYear();
-      });
-
-      // validate that the date selected is accurate
-      $scope.checkDate = function(){
-        // update the date or return false if not all date fields entered.
-        var date = rsmDateUtils.checkDate($scope.dateFields);
-        if(date){
-          $scope.dateFields = date;
+          $scope.$watch('model', function(newDate) {
+            $scope.dateFields.day = new Date(newDate).getDate();
+            $scope.dateFields.month = new Date(newDate).getMonth();
+            $scope.dateFields.year = new Date(newDate).getFullYear();
+          });
         }
-      };
-    }],
-    template:
-    '<div class="form-inline">' +
-    '  <div class="form-group col-xs-3 col-sm-3 col-md-3 col-lg-3 noPadding">' +
-    '    <select name="dateFields.day" data-ng-model="dateFields.day" placeholder="Day" class="form-control" ng-options="day for day in days" ng-change="checkDate()" ng-disabled="disableFields"></select>' +
-    '  </div>' +
-    '  <div class="form-group col-xs-5 col-sm-5 col-md-5 col-lg-5 noPadding">' +
-    '    <select name="dateFields.month" data-ng-model="dateFields.month" placeholder="Month" class="form-control" ng-options="month.value as month.name for month in months" value="{{dateField.month}}" ng-change="checkDate()" ng-disabled="disableFields"></select>' +
-    '  </div>' +
-    '  <div class="form-group col-xs-4 col-sm-4 col-md-4 col-lg-4 noPadding">' +
-    '    <select name="dateFields.year" data-ng-model="dateFields.year" placeholder="Year" class="form-control" ng-options="year for year in years" ng-change="checkDate()" ng-disabled="disableFields"></select>' +
-    '  </div>' +
-    '</div>',
-    link: function(scope, element, attrs, ctrl){
-      // allow overwriting of the
-      if(attrs.dayDivClass){
-        angular.element(element[0].children[0]).removeClass('col-3 col-sm-2 col-lg-2 noLeftPadding');
-        angular.element(element[0].children[0]).addClass(attrs.dayDivClass);
-      }
-      if(attrs.dayClass){
-        angular.element(element[0].children[0].children[0]).removeClass('form-control');
-        angular.element(element[0].children[0].children[0]).addClass(attrs.dayClass);
-      }
-      if(attrs.monthDivClass){
-        angular.element(element[0].children[1]).removeClass('col-5 col-sm-6 col-lg-4');
-        angular.element(element[0].children[1]).addClass(attrs.monthDivClass);
-      }
-      if(attrs.monthClass){
-        angular.element(element[0].children[1].children[0]).removeClass('form-control');
-        angular.element(element[0].children[1].children[0]).addClass(attrs.monthClass);
-      }
-      if(attrs.yearDivClass){
-        angular.element(element[0].children[2]).removeClass('col-4 col-sm-4 col-lg-3');
-        angular.element(element[0].children[2]).addClass(attrs.yearDivClass);
-      }
-      if(attrs.yearClass){
-        angular.element(element[0].children[2].children[0]).removeClass('form-control');
-        angular.element(element[0].children[2].children[0]).addClass(attrs.yearClass);
-      }
-
-      // set the years drop down from attributes or defaults
-      var currentYear = parseInt(attrs.startingYear,10) || new Date().getFullYear();
-      var numYears = parseInt(attrs.numYears,10) || 100;
-      var oldestYear = currentYear - numYears;
-
-      scope.years = [];
-      for(var i = currentYear; i >= oldestYear; i-- ){
-        scope.years.push(i);
-      }
-
-      // pass down the ng-disabled property
-      scope.$parent.$watch(attrs.ngDisabled, function(newVal){
-        scope.disableFields = newVal;
-      });
-
-
-      var validator = function(){
-        var valid = true;
-        if(isNaN(scope.dateFields.day) && isNaN(scope.dateFields.month) && isNaN(scope.dateFields.year)){
-          valid = true;
+      ],
+      template: '<div>' +
+        '  <div class="form-group noPadding" style="display:inline-block" ng-if="!noDay">' +
+        '    <select class="form-control" name="dateFields.day" ng-model="dateFields.day" class="form-control" ng-options="day for day in days" ng-disabled="disableFields"><option value="" disabled>Day</option></select>' +
+        '  </div>' +
+        '  <div class="form-group noPadding" style="display:inline-block">' +
+        '    <select class="form-control" name="dateFields.month" ng-model="dateFields.month" class="form-control" ng-options="month.value as month.name for month in months" value="{{dateField.month}}" ng-disabled="disableFields"><option value="" disabled>Month</option></select>' +
+        '  </div>' +
+        '  <div class="form-group noPadding" style="display:inline-block">' +
+        '    <select class="form-control" name="dateFields.year" ng-model="dateFields.year" class="form-control" ng-options="year for year in years" ng-disabled="disableFields"><option value="" disabled>Year</option></select>' +
+        '  </div>' +
+        '</div>',
+      link: function(scope, element, attrs, ctrl) {
+        // allow overwriting of the
+        if (attrs.dayDivClass) {
+          angular.element(element[0].children[0]).removeClass('');
+          angular.element(element[0].children[0]).addClass(attrs.dayDivClass);
         }
-        else if(!isNaN(scope.dateFields.day) && !isNaN(scope.dateFields.month) && !isNaN(scope.dateFields.year)){
-          valid = true;
+        if (attrs.dayClass) {
+          angular.element(element[0].children[0].children[0]).removeClass('form-control');
+          angular.element(element[0].children[0].children[0]).addClass(attrs.dayClass);
         }
-        else valid = false;
+        if (attrs.monthDivClass) {
+          angular.element(element[0].children[1]).removeClass('');
+          angular.element(element[0].children[1]).addClass(attrs.monthDivClass);
+        }
+        if (attrs.monthClass) {
+          angular.element(element[0].children[1].children[0]).removeClass('form-control');
+          angular.element(element[0].children[1].children[0]).addClass(attrs.monthClass);
+        }
+        if (attrs.yearDivClass) {
+          angular.element(element[0].children[2]).removeClass('');
+          angular.element(element[0].children[2]).addClass(attrs.yearDivClass);
+        }
+        if (attrs.yearClass) {
+          angular.element(element[0].children[2].children[0]).removeClass('form-control');
+          angular.element(element[0].children[2].children[0]).addClass(attrs.yearClass);
+        }
 
-        ctrl.$setValidity('rsmdatedropdowns', valid);
-      };
+        var noDay = (attrs.noDay) ? true : false;
+        var defaultDay = (attrs.noDay) ? eval(attrs.noDay) : 31;
 
-      scope.$watch('dateFields.day', function(){
-        validator();
-      });
+        scope.noDay = noDay;
 
-      scope.$watch('dateFields.month', function(){
-        validator();
-      });
+        // set the years drop down from attributes or defaults
+        var currentYear = new Date().getFullYear();
+        var numYears = parseInt(attrs.numYears, 10) || 130;
 
-      scope.$watch('dateFields.year', function(){
-        validator();
-      });
-    }
-  };
-}]);
+        var direction = (attrs.dateDirection) ? attrs.dateDirection : '-';
+        var isForward = direction === '+';
+        var oldestYear = (!isForward) ? currentYear - numYears : currentYear + numYears;
+
+        scope.years = [];
+        if (!isForward) {
+          for (var i = currentYear; i >= oldestYear; i--) {
+            scope.years.push(i);
+          }
+        } else {
+          for (var i = currentYear; i < oldestYear; i++) {
+            scope.years.push(i);
+          }
+        }
+
+        (function() {
+          // set model data to blank if it not valid
+          var date = scope.model;
+          // add missing year if not in the list
+          if (date && date.getFullYear() < oldestYear)
+            scope.years.push(date.getFullYear());
+
+          if (scope.model && scope.model != dateutils.correctDate(isForward, date)) {
+            scope.model = "";
+          }
+        })();
+
+        // pass down the ng-disabled property
+        scope.$parent.$watch(attrs.ngDisabled, function(newVal) {
+          scope.disableFields = newVal;
+        });
+
+        var validator = function() {
+          var valid = true;
+          if (isNaN(scope.dateFields.day) && isNaN(scope.dateFields.month) && isNaN(scope.dateFields.year)) {
+            valid = true;
+          } else if (!isNaN(scope.dateFields.day) && !isNaN(scope.dateFields.month) && !isNaN(scope.dateFields.year)) {
+            valid = true;
+          } else valid = false;
+
+          ctrl.$setValidity('ctdatedropdowns', valid);
+          return valid;
+        };
+
+        var validatorNoDay = function() {
+          var valid = true;
+          if (isNaN(scope.dateFields.month) && isNaN(scope.dateFields.year)) {
+            valid = true;
+          } else if (!isNaN(scope.dateFields.month) && !isNaN(scope.dateFields.year)) {
+            valid = true;
+          } else valid = false;
+
+          ctrl.$setValidity('ezdatedropdowns', valid);
+          return valid;
+        };
+
+        scope.$watch('dateFields | json', function() {
+          if (!noDay && validator()) {
+            // update the date or return false if not all date fields entered.
+            var date = dateutils.checkDate({
+              year: scope.dateFields.year,
+              month: scope.dateFields.month,
+              day: scope.dateFields.day
+            });
+            if (date) {
+              scope.dateFields = date;
+            }
+            var intendedDate = new Date(scope.dateFields.year, scope.dateFields.month, scope.dateFields.day);
+            scope.model = dateutils.correctDate(isForward, intendedDate);
+          } else if (noDay && validatorNoDay()) {
+            // update the date or return false if not all date fields entered.
+            var date = dateutils.checkDate({
+              year: scope.dateFields.year,
+              month: scope.dateFields.month,
+              day: defaultDay
+            });
+            if (date) {
+              scope.dateFields = date;
+            }
+            var intendedDate = new Date(scope.dateFields.year, scope.dateFields.month, scope.dateFields.day);
+            scope.model = dateutils.correctDate(isForward, intendedDate);
+          }
+        });
+      }
+    };
+  }
+]);
